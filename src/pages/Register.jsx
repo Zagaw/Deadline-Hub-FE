@@ -24,15 +24,6 @@ const Register = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Student ID</label>
-            <input 
-              type="text" 
-              placeholder="e.g. TNT-0000"
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all"
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
             <input 
               type="email" 
