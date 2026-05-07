@@ -1,15 +1,43 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { loginUser, saveToken, saveUser } from '../services/api';
 
 const Login = () => {
-    const navigate = useNavigate(); // Navigation function ကို ကြေညာပါ
+    const navigate = useNavigate();
+     // Navigation function ကို ကြေညာပါ
+     const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
-    e.preventDefault(); // Form က Refresh မဖြစ်အောင် တားတာပါ
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    // Form က Refresh မဖြစ်အောင် တားတာပါ
 
-    // ဒီနေရာမှာ နောက်ပိုင်းကျရင် Member 1 က Backend နဲ့ ချိတ်တဲ့ logic ရေးပါလိမ့်မယ်
+    // Validation
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await loginUser({ email, password });
+      saveToken(response.token);
+      saveUser(response.user);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+    //*** */ ဒီနေရာမှာ နောက်ပိုင်းကျရင် Member 1 က Backend နဲ့ ချိတ်တဲ့ logic ရေးပါလိမ့်မယ်
     // အခုလောလောဆယ် ခလုတ်နှိပ်ရင် Dashboard ကို တန်းသွားအောင် လုပ်ထားမယ်
-    navigate('/dashboard');};
+    //navigate('/dashboard');};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans p-4">
@@ -25,12 +53,21 @@ const Login = () => {
           <p className="text-slate-500 mt-2">Login to manage your deadlines</p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Form */}
         <form className="space-y-6" onSubmit={handleLogin}>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
             <input 
               type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="example@gmail.com"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all"
             />
@@ -40,6 +77,8 @@ const Login = () => {
             <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
             <input 
               type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="enter the password"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all"
             />
@@ -54,8 +93,9 @@ const Login = () => {
 
           <button 
             type="submit"
+            disabled={loading}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-200 transition-all active:scale-95">
-            Login to Dashboard
+            {loading ? 'Logging in...' : 'Login to Dashboard'}
           </button>
         </form>
 
