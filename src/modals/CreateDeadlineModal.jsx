@@ -16,7 +16,7 @@ const CreateDeadlineModal = ({ isOpen, onClose, onSubmit }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  /*const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !description) return alert("Please fill all fields");
 
@@ -38,7 +38,53 @@ const CreateDeadlineModal = ({ isOpen, onClose, onSubmit }) => {
     setDate('');
     setSelectedFile(null);
     onClose();
-  };
+  };*/
+
+  const handleSubmit = (e) => {
+  e.preventDefault();
+  if (!name || !description) return alert("Please fill all fields");
+
+  // Format date correctly for API
+  let dueDate = '';
+  let dueTime = '';
+  let timestamp = '';
+  
+  if (date) {
+    const dateObj = new Date(date);
+    dueDate = dateObj.toISOString().split('T')[0];
+    dueTime = dateObj.toLocaleTimeString();
+    timestamp = `Due: ${dateObj.toLocaleString()}`;
+  } else {
+    // Default: 7 days from now
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 7);
+    dueDate = defaultDate.toISOString().split('T')[0];
+    dueTime = '23:59:00';
+    timestamp = `Due: ${defaultDate.toLocaleString()}`;
+  }
+
+  onSubmit({
+    id: Date.now(),
+    name: name,
+    description: description,
+    title: name,
+    dueDate: dueDate,
+    dueTime: dueTime,
+    timestamp: timestamp,
+    status: "pending",
+    priority: "medium",
+    fileObject: selectedFile,
+    fileName: selectedFile ? selectedFile.name : null,
+    file: selectedFile
+  });
+
+  // Reset fields
+  setName('');
+  setDescription('');
+  setDate('');
+  setSelectedFile(null);
+  onClose();
+};
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
