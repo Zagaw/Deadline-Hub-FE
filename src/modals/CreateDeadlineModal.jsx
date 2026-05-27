@@ -12,79 +12,45 @@ const CreateDeadlineModal = ({ isOpen, onClose, onSubmit }) => {
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]); // ရွေးလိုက်တဲ့ ဖိုင်ကို State ထဲသိမ်းမယ်
+      setSelectedFile(e.target.files[0]);
     }
   };
 
-  /*const handleSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !description) return alert("Please fill all fields");
 
+    // ✨ လက်နဲ့ရိုက်လို့ အချိန် (Time) မပြည့်စုံဘဲ ကျန်ခဲ့ရင် အလိုအလျောက် ဖြည့်ပေးမည့် စနစ်
+    let finalDateString = date;
+    
+    if (!finalDateString) {
+      // နေ့စွဲ လုံးဝ မရွေးထားရင်
+      finalDateString = "Due: Not Set";
+    } else {
+      // အကယ်၍ input ထဲမှာ နေ့စွဲပဲပါပြီး အချိန်ပိုင်း လိုအပ်နေရင် (ဥပမာ: "2026-07-09T--:--")
+      if (finalDateString.includes('T') && finalDateString.endsWith('T')) {
+        finalDateString += "23:59"; // Default အနေနဲ့ ညဉ့်နက်ပိုင်း အချိန် သတ်မှတ်ပေးမယ်
+      }
+      finalDateString = `Due: ${finalDateString.replace('T', ' ')}`;
+    }
+
     onSubmit({
       id: Date.now(),
-    name: name,
-    description: description,
-    timestamp: date ? `Due: ${date.replace('T', ' ')}` : "Due: Not Set",
-    status: "In progress",
-    
-    // စာသားသက်သက်တင် မဟုတ်ဘဲ တကယ့် File object ကိုပါ ပို့လိုက်မယ်
-    fileObject: selectedFile ? selectedFile : null, 
-    fileName: selectedFile ? selectedFile.name : null 
+      name: name,
+      description: description,
+      timestamp: finalDateString,
+      status: "In progress",
+      fileName: selectedFile ? selectedFile.name : null,
+      fileObject: selectedFile ? selectedFile : null
     });
 
-    // Reset fields
+    // Reset Fields
     setName('');
     setDescription('');
     setDate('');
     setSelectedFile(null);
     onClose();
-  };*/
-
-  const handleSubmit = (e) => {
-  e.preventDefault();
-  if (!name || !description) return alert("Please fill all fields");
-
-  // Format date correctly for API
-  let dueDate = '';
-  let dueTime = '';
-  let timestamp = '';
-  
-  if (date) {
-    const dateObj = new Date(date);
-    dueDate = dateObj.toISOString().split('T')[0];
-    dueTime = dateObj.toLocaleTimeString();
-    timestamp = `Due: ${dateObj.toLocaleString()}`;
-  } else {
-    // Default: 7 days from now
-    const defaultDate = new Date();
-    defaultDate.setDate(defaultDate.getDate() + 7);
-    dueDate = defaultDate.toISOString().split('T')[0];
-    dueTime = '23:59:00';
-    timestamp = `Due: ${defaultDate.toLocaleString()}`;
-  }
-
-  onSubmit({
-    id: Date.now(),
-    name: name,
-    description: description,
-    title: name,
-    dueDate: dueDate,
-    dueTime: dueTime,
-    timestamp: timestamp,
-    status: "pending",
-    priority: "medium",
-    fileObject: selectedFile,
-    fileName: selectedFile ? selectedFile.name : null,
-    file: selectedFile
-  });
-
-  // Reset fields
-  setName('');
-  setDescription('');
-  setDate('');
-  setSelectedFile(null);
-  onClose();
-};
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
@@ -106,8 +72,9 @@ const CreateDeadlineModal = ({ isOpen, onClose, onSubmit }) => {
               type="text" 
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. HCI Final Project"
+              placeholder="   "
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-purple-500 transition-all text-sm text-slate-800"
+              required
             />
           </div>
 
@@ -120,10 +87,11 @@ const CreateDeadlineModal = ({ isOpen, onClose, onSubmit }) => {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What needs to be done?"
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-purple-500 transition-all text-sm resize-none text-slate-800"
+              required
             ></textarea>
           </div>
 
-          {/* 3. Due Date */}
+          {/* 3. Due Date (လက်ရိုက်ရော Calendar ရော နှစ်မျိုးလုံး စိတ်ချရအောင် ပြင်ဆင်ပြီး) */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Due Date</label>
             <input 
@@ -137,33 +105,19 @@ const CreateDeadlineModal = ({ isOpen, onClose, onSubmit }) => {
           {/* 4. Attach File */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Attachments</label>
-            
-            <input 
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden" 
-            />
-
-            {/* ဖိုင်ရွေးပြီးရင် ဖိုင်နာမည် အရှည်ကြီးဖြစ်နေရင် အစက်လေးတွေနဲ့ ဖြတ်ပြပေးမယ့် ပုံစံကို လုံခြုံအောင် ပြင်ထားပါတယ် */}
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
             <button 
               type="button"
               onClick={() => fileInputRef.current.click()}
               className={`w-full px-4 py-2.5 rounded-xl border-2 border-dashed transition-all flex items-center justify-center gap-2 text-sm font-bold ${
-                selectedFile 
-                  ? 'border-green-400 bg-green-50 text-green-600' 
-                  : 'border-slate-200 text-slate-400 hover:border-purple-400 hover:text-purple-500'
+                selectedFile ? 'border-green-400 bg-green-50 text-green-600' : 'border-slate-200 text-slate-400 hover:border-purple-400 hover:text-purple-500'
               }`}
             >
-              {selectedFile ? (
-                <span className="truncate max-w-[250px]">📎 {selectedFile.name}</span>
-              ) : (
-                <span>📎 Attach File / Pic</span>
-              )}
+              {selectedFile ? <span className="truncate max-w-[250px]">📎 {selectedFile.name}</span> : <span>📎 Attach File / Pic</span>}
             </button>
           </div>
 
-          {/* Buttons */}
+          {/* Bottom Action Buttons */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 bg-slate-100 py-3 rounded-xl font-bold text-slate-600 text-sm">
               Cancel
@@ -172,6 +126,7 @@ const CreateDeadlineModal = ({ isOpen, onClose, onSubmit }) => {
               Create Deadline
             </button>
           </div>
+
         </form>
       </div>
     </div>
