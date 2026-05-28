@@ -1,5 +1,5 @@
 
-const API_URL = 'http://localhost:5000/api/deadlines';
+const API_URL = 'http://localhost:3000/api/deadlines';
 
 // Get auth token
 const getToken = () => localStorage.getItem('token');

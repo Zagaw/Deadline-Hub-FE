@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/rooms'; // သင့် Backend URL အတိုင်းပြင်ပါ
+const API_URL = 'http://localhost:3000/api/rooms'; // သင့် Backend URL အတိုင်းပြင်ပါ
 
 const getHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
