@@ -34,6 +34,7 @@ export const getDeadlineById = async (id) => {
 };
 
 // Create deadline (with file)
+// services/deadlineApi.js
 export const createDeadline = async (deadlineData) => {
     const formData = new FormData();
     formData.append('title', deadlineData.title);
@@ -41,6 +42,15 @@ export const createDeadline = async (deadlineData) => {
     formData.append('dueDate', deadlineData.dueDate);
     formData.append('dueTime', deadlineData.dueTime);
     formData.append('priority', deadlineData.priority || 'medium');
+    
+    // Add group task fields if they exist
+    if (deadlineData.isGroup !== undefined) {
+        formData.append('isGroupTask', deadlineData.isGroup);
+    }
+    if (deadlineData.roomId) {
+        formData.append('roomId', deadlineData.roomId);
+    }
+    
     if (deadlineData.file) {
         formData.append('file', deadlineData.file);
     }
@@ -53,7 +63,10 @@ export const createDeadline = async (deadlineData) => {
     });
     
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Create failed');
+    if (!response.ok) {
+        console.error('Server error:', data);
+        throw new Error(data.message || 'Create failed');
+    }
     return data;
 };
 

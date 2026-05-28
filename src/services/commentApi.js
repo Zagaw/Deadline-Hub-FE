@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api/comments';
+const API_URL = 'http://localhost:5000/api/comments';
 
 const getToken = () => localStorage.getItem('token');
 

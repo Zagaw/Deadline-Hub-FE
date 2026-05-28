@@ -205,8 +205,8 @@ const Dashboard = () => {
             dueDate: dueDate,
             dueTime: dueTime,
             priority: newDl.priority || 'medium',
-            isGroup: targetRoomIdForNewDeadline ? true : false,
-            roomId: targetRoomIdForNewDeadline
+            // isGroup: targetRoomIdForNewDeadline ? true : false,
+            // roomId: targetRoomIdForNewDeadline
           };
           
           await createDeadline(apiData).catch(() => null);
