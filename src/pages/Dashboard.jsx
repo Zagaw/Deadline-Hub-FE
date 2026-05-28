@@ -7,19 +7,22 @@ import ScheduleView from '../components/ScheduleView';
 import GroupRoomsView from '../components/GroupRoomsView';
 import RoomManagementModal from '../modals/RoomManagementModal';
 import { getDeadlines, createDeadline, updateDeadline, completeDeadline } from '../services/deadlineApi';
-import * as roomApi from '../services/roomApi'; // 👈 ကျွန်ုပ်တို့ ဆောက်ခဲ့သော Fetch/Axios API
+import * as roomApi from '../services/roomApi';
 
 const Dashboard = () => {
     const [taskTab, setTaskTab] = useState('all'); // 'all', 'personal', 'group'
     const [currentView, setCurrentView] = useState('dashboard');
     const [showProfile, setShowProfile] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    
+
     // Modals & Drawers States
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [targetRoomIdForNewDeadline, setTargetRoomIdForNewDeadline] = useState(null);
     const [showCommentDrawer, setShowCommentDrawer] = useState(false);
     const [selectedDeadline, setSelectedDeadline] = useState(null);
+
+    // ✏️ ပြင်ဆင်မည့် Deadline ဒေတာကို ခဏမှတ်ထားရန် State
+    const [editingDeadline, setEditingDeadline] = useState(null);
 
     // 📦 Rooms Dynamic State
     const [rooms, setRooms] = useState([]);
@@ -30,19 +33,19 @@ const Dashboard = () => {
     const [roomsLoading, setRoomsLoading] = useState(false);
     const [deadlines, setDeadlines] = useState([]);
 
-    // 💡 စမ်းသပ်ရန် လက်ရှိ User ID (သင့် Backend JWT Token မှ Decode လုပ်ထားသော ID နှင့် ညှိပါ)
     const currentUserId = 999; 
 
     // Initial Loading
     useEffect(() => {
-      const initLoad = async () => {
-        setLoading(true);
-        await Promise.all([loadDeadlines(), loadRooms()]);
-        setLoading(false);
-      };
       initLoad();
     }, []);
 
+    const initLoad = async () => {
+      setLoading(true);
+      await Promise.all([loadDeadlines(), loadRooms()]);
+      setLoading(false);
+    };
+    
     // 1️⃣ API မှ Deadlines များ ဆွဲယူခြင်း
     const loadDeadlines = async () => {
       try {
@@ -67,17 +70,15 @@ const Dashboard = () => {
       }
     };
 
-    // 2️⃣ API မှ မိမိပိုင်ဆိုင်သော/ဝင်ထားသော Rooms များ ဆွဲယူခြင်း
+    // 2️⃣ API မှ Rooms များ ဆွဲယူခြင်း
     const loadRooms = async () => {
       setRoomsLoading(true);
       try {
-        // 💡 Backend API မှ တကယ့် Rooms data များကို ယူဆောင်ခြင်း
         const response = await roomApi.getRoomDetails('my-rooms').catch(() => null);
         
         if (response && response.rooms) {
           setRooms(response.rooms);
         } else {
-          // ⚠️ API လမ်းကြောင်း မဆောက်ရသေးပါက UI မပျက်စေရန် အောက်ပါအတိုင်း Default Mock လုပ်ပေးထားမည်
           setRooms([
             { 
               id: 101, 
@@ -97,18 +98,14 @@ const Dashboard = () => {
       }
     };
 
-    // 3️⃣ ➕ Create Room အလုပ်လုပ်စေမည့် Logic
+    // 3️⃣ Create Room Logic
     const handleCreateRoom = async (roomName) => {
       try {
         setRoomsLoading(true);
-        const result = await roomApi.createRoom({ name: roomName });
-        
+        await roomApi.createRoom({ name: roomName });
         alert(`🎉 Room "${roomName}" Created Successfully!`);
-        // API မှ အောင်မြင်စွာ ပြန်လာပါက စာရင်းကို ပြန်လည် Update လုပ်ခြင်း
         await loadRooms(); 
       } catch (e) { 
-        console.error(e);
-        // 💡 API အလုပ်လုပ်ပုံကို မျက်မြင်စမ်းသပ်နိုင်ရန် (Backend မပြည့်စုံသေးပါက) Local State ထဲ တိုက်ရိုက်ထည့်ပေးခြင်း
         const fallbackId = Date.now();
         const newLocalRoom = {
           id: fallbackId,
@@ -126,20 +123,164 @@ const Dashboard = () => {
       }
     };
 
-    // 4️⃣ 🚪 Join Room Code ရိုက်ပြီး ဝင်ခွင့်တောင်းမည့် Logic
+    // 4️⃣ Join Room Logic
     const handleJoinRoom = async (code) => {
       try {
         setRoomsLoading(true);
-        const result = await roomApi.joinRoomByCode(code);
-        
+        await roomApi.joinRoomByCode(code);
         alert('✉️ Join request sent! Please wait for Owner approval.');
         await loadRooms();
       } catch (e) { 
-        console.error(e);
-        // 💡 စမ်းသပ်မှု အဆင်ပြေစေရန် ကုတ်မှန်ပါက တန်းဝင်နိုင်အောင် ဒေါ်မီ (Dummy Logic) ဖြင့် ပြသပေးခြင်း
         alert(`🔍 Room Code "${code}" ဆီသို့ ဝင်ခွင့်တောင်းဆိုမှု ပေးပို့ပြီးပါပြီ။`);
       } finally {
         setRoomsLoading(false);
+      }
+    };
+
+    // ✏️ Deadline Card/List ပေါ်က Edit ကိုနှိပ်လျှင် Modal ပွင့်လာစေမည့် Logic
+    const handleEditClick = (deadline) => {
+      setEditingDeadline(deadline);
+      setTargetRoomIdForNewDeadline(deadline.roomId);
+      setShowCreateModal(true);
+    };
+
+    // Modal ကို ပိတ်လိုက်လျှင် Edit State များကို ပြန်ရှင်းပစ်မည့် Logic
+    const handleCloseCreateModal = () => {
+      setShowCreateModal(false);
+      setEditingDeadline(null);
+      setTargetRoomIdForNewDeadline(null);
+    };
+
+    // 5️⃣ Create သို့မဟုတ် Edit တောင်းဆိုမှုများကို API ဆီ ပေးပို့သိမ်းဆည်းမည့် Logic
+    const handleAddDeadlineSubmit = async (newDl) => {
+      try {
+        let dueDate = newDl.dueDate || new Date().toISOString().split('T')[0];
+        let dueTime = newDl.dueTime || '23:59:00';
+
+        if (newDl.id || editingDeadline) {
+          const targetId = newDl.id || editingDeadline.id;
+          
+          await updateDeadline(targetId, {
+            title: newDl.name,
+            description: newDl.description,
+            dueDate: dueDate,
+            dueTime: dueTime,
+            priority: newDl.priority
+          }).catch(() => null);
+
+          setDeadlines(prev => prev.map(dl => dl.id === targetId ? {
+            ...dl,
+            name: newDl.name,
+            description: newDl.description,
+            rawDate: dueDate,
+            timestamp: `Due: ${dueDate} ${dueTime}`,
+            priority: newDl.priority
+          } : dl));
+
+          const activeRoomId = targetRoomIdForNewDeadline || editingDeadline.roomId;
+          if (activeRoomId) {
+            setRooms(prevRooms => prevRooms.map(rm => {
+              if (rm.id === activeRoomId) {
+                return {
+                  ...rm,
+                  deadlines: rm.deadlines?.map(dl => dl.id === targetId ? {
+                    ...dl,
+                    name: newDl.name,
+                    description: newDl.description,
+                    rawDate: dueDate,
+                    timestamp: `Due: ${dueDate} ${dueTime}`,
+                    priority: newDl.priority
+                  } : dl)
+                };
+              }
+              return rm;
+            }));
+          }
+          alert('✏️ Deadline ပြင်ဆင်ပြီးပါပြီ။');
+
+        } else {
+          const apiData = {
+            title: newDl.name,
+            description: newDl.description,
+            dueDate: dueDate,
+            dueTime: dueTime,
+            priority: newDl.priority || 'medium',
+            isGroup: targetRoomIdForNewDeadline ? true : false,
+            roomId: targetRoomIdForNewDeadline
+          };
+          
+          await createDeadline(apiData).catch(() => null);
+          
+          const localNewCard = {
+            id: Date.now(),
+            name: newDl.name,
+            description: newDl.description,
+            rawDate: dueDate,
+            timestamp: `Due: ${dueDate} ${dueTime}`,
+            status: 'In progress',
+            priority: newDl.priority || 'medium',
+            comments: [],
+            isGroupTask: targetRoomIdForNewDeadline ? true : false,
+            roomId: targetRoomIdForNewDeadline
+          };
+
+          setDeadlines(prev => [localNewCard, ...prev]);
+
+          if (targetRoomIdForNewDeadline) {
+            setRooms(prevRooms => prevRooms.map(rm => {
+              if (rm.id === targetRoomIdForNewDeadline) {
+                return { ...rm, deadlines: [...(rm.deadlines || []), localNewCard] };
+              }
+              return rm;
+            }));
+          }
+          alert('📝 New Deadline Created Successfully!');
+        }
+
+        handleCloseCreateModal();
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    // 6️⃣ Toggle Status Logic
+    const handleToggleStatus = async (roomId, dlId) => {
+      const actualDlId = dlId ? dlId : roomId;
+      const targetDeadline = deadlines.find(d => d.id === actualDlId);
+      const isGroup = targetDeadline ? targetDeadline.isGroupTask : (dlId ? true : false);
+      const actualRoomId = targetDeadline ? targetDeadline.roomId : roomId;
+
+      try {
+        await completeDeadline(actualDlId).catch(() => null);
+
+        setDeadlines(prev => prev.map(dl => {
+          if (dl.id === actualDlId) {
+            const nextStatus = dl.status === 'Done' ? 'In progress' : 'Done';
+            return { ...dl, status: nextStatus };
+          }
+          return dl;
+        }));
+
+        if (isGroup && actualRoomId) {
+          setRooms(prevRooms => prevRooms.map(rm => {
+            if (rm.id === actualRoomId) {
+              return {
+                ...rm,
+                deadlines: rm.deadlines?.map(dl => {
+                  if (dl.id === actualDlId) {
+                    const nextStatus = dl.status === 'Done' ? 'In progress' : 'Done';
+                    return { ...dl, status: nextStatus };
+                  }
+                  return dl;
+                })
+              };
+            }
+            return rm;
+          }));
+        }
+
+      } catch (e) { 
+        console.error("Failed to toggle status:", e); 
       }
     };
 
@@ -171,70 +312,23 @@ const Dashboard = () => {
       } catch (e) { alert('Card deleted'); loadRooms(); setShowRoomSettingsModal(false); }
     };
 
-    // Deadline Create Logic (Room ထဲမှ ဆောက်လျှင် Room ID နှင့် ချိတ်မည်)
     const openCreateModalForRoom = (roomId) => {
       setTargetRoomIdForNewDeadline(roomId);
       setShowCreateModal(true);
     };
 
-    const handleAddDeadlineSubmit = async (newDl) => {
-      try {
-        // သတ်မှတ်ထားသော Format ပုံစံ ပြောင်းလဲခြင်း
-        let dueDate = newDl.dueDate || new Date().toISOString().split('T')[0];
-        let dueTime = newDl.dueTime || '23:59:00';
-
-        const apiData = {
-          title: newDl.name,
-          description: newDl.description,
-          dueDate: dueDate,
-          dueTime: dueTime,
-          priority: newDl.priority || 'medium',
-          isGroup: targetRoomIdForNewDeadline ? true : false,
-          roomId: targetRoomIdForNewDeadline
-        };
-        
-        await createDeadline(apiData).catch(() => null);
-        
-        // Local State အား လက်တလော Update ဖြစ်အောင် လုပ်ဆောင်ခြင်း
-        const localNewCard = {
-          id: Date.now(),
-          name: newDl.name,
-          description: newDl.description,
-          rawDate: dueDate,
-          timestamp: `Due: ${dueDate} ${dueTime}`,
-          status: 'In progress',
-          priority: newDl.priority || 'medium',
-          comments: [],
-          isGroupTask: targetRoomIdForNewDeadline ? true : false,
-          roomId: targetRoomIdForNewDeadline
-        };
-
-        setDeadlines(prev => [localNewCard, ...prev]);
-
-        // အကယ်၍ Room ထဲမှာ ဆောက်တာဆိုရင် ထို Room ထဲကိုပါ တိုက်ရိုက်ထည့်ပေးခြင်း
-        if (targetRoomIdForNewDeadline) {
-          setRooms(prevRooms => prevRooms.map(rm => {
-            if (rm.id === targetRoomIdForNewDeadline) {
-              return { ...rm, deadlines: [...(rm.deadlines || []), localNewCard] };
-            }
-            return rm;
-          }));
-        }
-
-        alert('📝 New Deadline Created Successfully!');
-        setShowCreateModal(false);
-        setTargetRoomIdForNewDeadline(null);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    // Tasks စစ်ထုတ်ခြင်း
-    const filteredDeadlines = deadlines.filter(dl => {
-      if (taskTab === 'personal') return !dl.isGroupTask;
-      if (taskTab === 'group') return dl.isGroupTask;
-      return true;
-    });
+    // ⏰ [FIXED SORTING LOGIC]: အချိန်အနီးဆုံးအရာ (ရက်စွဲအငယ်ဆုံး) ကို ထိပ်ဆုံးမှာ တိတိကျကျ စီပေးလိုက်ခြင်း
+    const filteredDeadlines = deadlines
+      .filter(dl => {
+        if (taskTab === 'personal') return !dl.isGroupTask;
+        if (taskTab === 'group') return dl.isGroupTask;
+        return true;
+      })
+      .sort((a, b) => {
+        const timeA = a.rawDate ? new Date(`${a.rawDate}T23:59:59`).getTime() : Infinity;
+        const timeB = b.rawDate ? new Date(`${b.rawDate}T23:59:59`).getTime() : Infinity;
+        return timeA - timeB; // Ascending Order: အနီးဆုံးရက်စွဲများကို အပေါ်ဆုံးသို့ စီစဉ်ပေးသည်
+      });
 
     return (
       <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
@@ -268,26 +362,119 @@ const Dashboard = () => {
                   onCreateRoom={handleCreateRoom}
                   onJoinRoom={handleJoinRoom}
                   onOpenSettings={(room) => { setSelectedRoomForSettings(room); setShowRoomSettingsModal(true); }}
-                  onToggleStatus={(roomId, dlId) => alert('Toggled room status')}
+                  onToggleStatus={handleToggleStatus} 
                   openCommentDrawer={(dl) => { setSelectedDeadline(dl); setShowCommentDrawer(true); }}
                   onCreateDeadlineClick={openCreateModalForRoom}
+                  onEditClick={handleEditClick}
                 />
               )
             ) : (
               <>
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-black text-slate-800">{taskTab === 'all' ? 'All Deadlines Overview' : 'My Personal Tasks'}</h2>
-                  <button onClick={() => openCreateModalForRoom(null)} className="bg-purple-600 text-white font-black px-4 py-2 rounded-xl text-sm shadow-md cursor-pointer">📝 Create Deadline</button>
+                {/* Header Area */}
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-xl font-black text-slate-800">
+                    {taskTab === 'all' ? 'All Deadlines Overview' : 'My Personal Tasks'}
+                  </h2>
+                  {taskTab === 'personal' && (
+                    <button 
+                      onClick={() => openCreateModalForRoom(null)} 
+                      className="bg-purple-600 text-white font-black px-4 py-2 rounded-xl text-sm shadow-md cursor-pointer hover:bg-purple-700 transition-colors"
+                    >
+                      📝 Create Deadline
+                    </button>
+                  )}
                 </div>
+
                 {loading ? (
                   <div className="text-center py-20 text-slate-400 font-bold animate-pulse text-sm">Loading...</div>
                 ) : filteredDeadlines.length === 0 ? (
                   <div className="text-center py-20 text-slate-400 font-medium text-sm">No tasks found here.</div>
-                ) : (
+                ) : taskTab === 'personal' ? (
+                  
+                  /* 📇 [PERSONAL TAB]: Card (ကတ်ပြား) ပုံစံဖြင့်သာ သီးသန့်ပြသခြင်း */
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredDeadlines.map((dl) => (
-                      <DeadlineCard key={dl.id} deadline={dl} onCommentClick={() => { setSelectedDeadline(dl); setShowCommentDrawer(true); }} onToggleStatus={() => {}} />
+                      <DeadlineCard 
+                        key={dl.id} 
+                        deadline={dl} 
+                        onCommentClick={() => { setSelectedDeadline(dl); setShowCommentDrawer(true); }} 
+                        onToggleStatus={handleToggleStatus} 
+                        onEditClick={handleEditClick}
+                      />
                     ))}
+                  </div>
+                ) : (
+                  
+                  /* 📋 [TOTAL TAB]: List (ဇယား) ပုံစံဖြင့်သာ သီးသန့်ပြသခြင်း */
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50/75 border-b border-slate-100">
+                            <th className="p-4 text-xs font-black text-slate-400 uppercase w-14 text-center">Status</th>
+                            <th className="p-4 text-xs font-black text-slate-400 uppercase">Task Name</th>
+                            <th className="p-4 text-xs font-black text-slate-400 uppercase hidden md:table-cell">Description</th>
+                            <th className="p-4 text-xs font-black text-slate-400 uppercase text-center">Priority</th>
+                            <th className="p-4 text-xs font-black text-slate-400 uppercase text-right w-32">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {filteredDeadlines.map((dl) => {
+                            const isDone = dl.status === 'Done';
+                            return (
+                              <tr key={dl.id} className={`hover:bg-slate-50/60 transition-colors ${isDone ? 'bg-emerald-50/10' : ''}`}>
+                                
+                                <td className="p-4 text-center">
+                                  <button 
+                                    onClick={() => handleToggleStatus(dl.roomId, dl.id)}
+                                    className={`w-5 h-5 rounded border mx-auto flex items-center justify-center text-xs transition-colors cursor-pointer ${isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 bg-white'}`}
+                                  >
+                                    {isDone && '✓'}
+                                  </button>
+                                </td>
+
+                                <td className="p-4">
+                                  <div className="font-bold text-slate-800 text-sm flex items-center gap-2 flex-wrap">
+                                    <span className={isDone ? 'line-through text-slate-400 font-medium' : ''}>{dl.name}</span>
+                                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold ${isDone ? 'bg-slate-100 text-slate-400' : 'bg-purple-50 text-purple-600'}`}>
+                                      📅 {dl.rawDate}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                <td className="p-4 text-xs text-slate-400 hidden md:table-cell max-w-xs truncate">
+                                  {dl.description || '-'}
+                                </td>
+
+                                <td className="p-4 text-center">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${dl.priority === 'high' ? 'bg-rose-50 text-rose-600' : dl.priority === 'low' ? 'bg-slate-100 text-slate-500' : 'bg-amber-50 text-amber-600'}`}>
+                                    {dl.priority || 'medium'}
+                                  </span>
+                                </td>
+
+                                <td className="p-4 text-right">
+                                  <div className="flex justify-end gap-1.5">
+                                    <button 
+                                      onClick={() => { setSelectedDeadline(dl); setShowCommentDrawer(true); }}
+                                      className="text-xs font-bold text-slate-500 hover:text-slate-800 px-2 py-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                                    >
+                                      💬 {dl.comments?.length || 0}
+                                    </button>
+                                    <button 
+                                      onClick={() => handleEditClick(dl)}
+                                      className="text-xs font-bold text-purple-600 hover:bg-purple-50 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                                    >
+                                      ✏️ Edit
+                                    </button>
+                                  </div>
+                                </td>
+
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </>
@@ -296,7 +483,13 @@ const Dashboard = () => {
         </div>
 
         {/* Modals Component Trees */}
-        <CreateDeadlineModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onSubmit={handleAddDeadlineSubmit} />
+        <CreateDeadlineModal 
+          isOpen={showCreateModal} 
+          onClose={handleCloseCreateModal} 
+          onSubmit={handleAddDeadlineSubmit} 
+          editData={editingDeadline} 
+        />
+        
         <CommentDrawer isOpen={showCommentDrawer} onClose={() => setShowCommentDrawer(false)} deadline={selectedDeadline} onAddComment={() => {}} onUpdateDeadline={() => {}} />
         
         <RoomManagementModal 

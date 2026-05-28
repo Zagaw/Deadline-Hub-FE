@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import DeadlineCard from './DeadlineCard';
 
 const GroupRoomsView = ({ 
-  rooms = [], currentUserId, onCreateRoom, onJoinRoom, onOpenSettings, onToggleStatus, openCommentDrawer, onCreateDeadlineClick 
+  rooms = [], 
+  currentUserId, 
+  onCreateRoom, 
+  onJoinRoom, 
+  onOpenSettings, 
+  onToggleStatus, 
+  openCommentDrawer, 
+  onCreateDeadlineClick,
+  onEditClick 
 }) => {
   const [searchCode, setSearchCode] = useState('');
   const [newRoomName, setNewRoomName] = useState('');
@@ -49,12 +57,12 @@ const GroupRoomsView = ({
             <form onSubmit={handleJoinSubmit} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex gap-2">
               <input 
                 type="text" 
-                placeholder="Enter Room Code"
+                placeholder="Enter Room Code" // 👈 Placeholder ပြောင်းလဲထားပါသည်
                 value={searchCode}
                 onChange={(e) => setSearchCode(e.target.value)}
                 className="flex-1 px-4 py-2 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 text-sm font-medium"
               />
-              <button type="submit" className="bg-purple-500 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer shrink-0">
+              <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer shrink-0">
                 🚪 Join Room
               </button>
             </form>
@@ -63,12 +71,12 @@ const GroupRoomsView = ({
             <form onSubmit={handleCreateSubmit} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex gap-2">
               <input 
                 type="text" 
-                placeholder="Enter Room Name"
+                placeholder="Enter Room Name" // 👈 Placeholder ပြောင်းလဲထားပါသည်
                 value={newRoomName}
                 onChange={(e) => setNewRoomName(e.target.value)}
                 className="flex-1 px-4 py-2 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 text-sm font-medium"
               />
-              <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer shrink-0">
+              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl active:scale-95 transition-all cursor-pointer shrink-0">
                 ➕ Create Room
               </button>
             </form>
@@ -88,7 +96,8 @@ const GroupRoomsView = ({
                   <div 
                     key={room.id}
                     onClick={() => setActiveRoomId(room.id)}
-                    className="bg-white p-5 rounded-2xl border border-slate-100 hover:border-purple-300 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group active:scale-[0.99]"
+                    /* 💡 [HOVER EFFECT]: ထောက်လိုက်ရင် border ပိုလင်းလာပြီး၊ အပေါ်ကို အနည်းငယ် ကြွတက်လာမည့် (-translate-y-0.5) effect ထည့်ထားပါသည် */
+                    className="bg-white p-5 rounded-2xl border border-slate-100 hover:border-purple-400 hover:-translate-y-0.5 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between min-h-[120px] active:scale-[0.99]"
                   >
                     <div>
                       <div className="flex justify-between items-start gap-2">
@@ -96,14 +105,14 @@ const GroupRoomsView = ({
                         <span className="text-[10px] bg-slate-100 font-mono px-2 py-0.5 rounded text-slate-500 shrink-0">#{room.code?.replace('RM-', '')}</span>
                       </div>  
                     </div>
-                    <div className="mt-4 pt-3 border-t border-slate-50 flex justify-end">
-                      <span className="text-xs text-purple-600 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                      <p className="text-xs text-slate-400 mt-2 flex items-center gap-6">
-                        <span>👪 Members: <b>{room.members?.length || 0}</b></span>
+                    
+                    {/* 💡 "ဝင်မည် ➔" ကို ဖြုတ်ပေးထားပြီး အောက်ခြေ Line ကို ပိုသန့်ရှင်းအောင် လုပ်ထားပါသည် */}
+                    <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center">
+                      <div className="text-xs text-slate-400 flex items-center gap-3">
+                        <span>👪 Members: <b className="text-slate-600">{room.members?.length || 0}</b></span>
                         <span>•</span>
-                        <span>📌 Tasks: <b>{room.deadlines?.length || 0}</b></span>
-                      </p>
-                      </span>
+                        <span>📌 Tasks: <b className="text-slate-600">{room.deadlines?.length || 0}</b></span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -121,12 +130,11 @@ const GroupRoomsView = ({
           {/* Back Button & Room Navigation Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-xs">
             <div className="flex items-center gap-4">
-              {/* အပြင်ပြန်ထွက်မည့် ခလုတ်လေး */}
               <button 
                 onClick={() => setActiveRoomId(null)}
                 className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
-                ◀ Back 
+                ◀ Back to Rooms
               </button>
               
               <div>
@@ -168,6 +176,7 @@ const GroupRoomsView = ({
                   deadline={dl} 
                   onCommentClick={() => openCommentDrawer(dl)} 
                   onToggleStatus={(id) => onToggleStatus(activeRoom.id, id)} 
+                  onEditClick={onEditClick} 
                 />
               ))}
             </div>
